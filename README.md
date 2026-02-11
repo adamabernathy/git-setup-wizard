@@ -2,13 +2,13 @@
 
 A terminal wizard that configures macOS for SSH authentication and GPG commit signing with GitHub.
 
-## One-liner install
+## Quick start
 
 ```sh
-python3 <(curl -fsSL https://raw.githubusercontent.com/adamabernathy/git-setup-wizard/main/git_setup_wizard.py)
+bash <(curl -fsSL https://raw.githubusercontent.com/adamabernathy/git-setup-wizard/main/run.sh)
 ```
 
-This works in both zsh (macOS default) and bash. The `<(...)` syntax downloads the script without consuming stdin, so the interactive prompts work correctly.
+This downloads and runs the launcher, which checks for Python 3, installs the `rich` package if needed, and starts the wizard. Works in both zsh (macOS default) and bash.
 
 ## What it does
 
@@ -27,8 +27,10 @@ The wizard is idempotent. Running it twice won't duplicate keys or config entrie
 
 Homebrew, GnuPG, and pinentry-mac are installed automatically if missing.
 
-## Manual run
+## Running from a local clone
 
 ```sh
-python3 git_setup_wizard.py
+git clone git@github.com:adamabernathy/git-setup-wizard.git
+cd git-setup-wizard
+./run.sh
 ```

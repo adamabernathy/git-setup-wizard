@@ -55,10 +55,10 @@ your branch:                   D ---- E --
 Open your terminal and paste this:
 
 ```bash
-python3 <(curl -fsSL https://raw.githubusercontent.com/adamabernathy/git-setup-wizard/main/git_setup_wizard.py)
+bash <(curl -fsSL https://raw.githubusercontent.com/adamabernathy/git-setup-wizard/main/run.sh)
 ```
 
-The wizard handles everything: generating your SSH key, creating your GPG signing key, configuring Git, and walking you through adding both keys to GitHub. It opens the right GitHub pages automatically and copies each key to your clipboard. Just follow the prompts.
+This downloads a small launcher that checks your Python install, grabs any missing packages, and starts the wizard. It handles everything: generating your SSH key, creating your GPG signing key, configuring Git, and walking you through adding both keys to GitHub. It opens the right GitHub pages automatically and copies each key to your clipboard. Just follow the prompts.
 
 This code respects all your data and information, [feel free to inspect it here](https://github.com/adamabernathy/git-setup-wizard).
 
@@ -66,15 +66,17 @@ When it finishes, your machine is configured for SSH authentication and verified
 
 ### Clone the practice repo
 
-Now grab a repo to work with. Note the `git@github.com:` prefix. That's the SSH URL, which is what you want now that SSH is configured.
+Now grab a repo to work with. Note the `git@github.com:` prefix. **That's the SSH URL, which is what you want now that SSH is configured**.
 
 For example, you can grab the repo that created the setup code.
 
 ```bash
-git clone git@github.com:adamabernathy/git-setup-wizard.git
+git clone git@github.com:adamabernathy/gitting-started-class.git
 cd practice-repo
 ls
 ```
+
+The ["web" version of the practice repos is here](https://github.com/adamabernathy/gitting-started-class).
 
 A Git repo is a folder with a hidden `.git` directory inside. Nothing magical.
 
@@ -125,7 +127,7 @@ Working Directory          Staging Area              Local Repo              Git
 
 ### Live exercise
 
-Everyone does this right now:
+Everyone do this right now:
 
 ```bash
 # 1. clone the code
@@ -208,6 +210,115 @@ That's it. Pick the right version, delete the markers, commit.
 
 ---
 
+## Checking out someone else's branch
+
+At some point someone will open a PR and you'll want to actually run their code on your machine before approving it. Maybe the diff looks fine but you want to see it work. Maybe the changes are complex enough that reading them on GitHub isn't enough.
+
+### The basic version
+
+If the branch exists on the same repo (shared repo model), you can grab it directly:
+
+```bash
+# Make sure you have the latest branch list from GitHub
+git fetch
+
+# Check out their branch
+git checkout alice/add-search
+
+# You're now running their code. Look around, test it, run it.
+```
+
+Your files immediately change to match whatever is on that branch. Nothing you had before is lost. Git just swapped what's in your working directory. To go back:
+
+```bash
+git checkout main
+```
+
+### If you have uncommitted work
+
+This is the most common snag. You're in the middle of something, a coworker asks you to review their PR, and you don't want to commit half-finished work just to switch branches.
+
+`git stash` solves this. It shelves your changes temporarily:
+
+```bash
+# Save your in-progress work
+git stash
+
+# Now you can safely switch
+git checkout alice/add-search
+
+# ... test their code, look around ...
+
+# Go back to your branch
+git checkout your-branch
+
+# Bring your work back
+git stash pop
+```
+
+Everything is exactly where you left it.
+
+### Using the gh CLI (easiest)
+
+If you have the [GitHub CLI](using-gh-cli.md) installed, you can skip remembering the branch name entirely and just check out by PR number:
+
+```bash
+gh pr checkout 42
+```
+
+This fetches the branch and switches to it in one command. It works for PRs from forks too, which is where the manual approach gets annoying (you'd need to add their fork as a remote). The `gh` CLI handles that behind the scenes.
+
+### What to actually do once you're on their branch
+
+This depends on the project, but the general pattern:
+
+```bash
+# 1. Check out the PR
+gh pr checkout 42
+
+# 2. Install any new dependencies (if applicable)
+npm install          # JavaScript
+pip install -r requirements.txt   # Python
+bundle install       # Ruby
+
+# 3. Run the project
+npm run dev          # or whatever the project uses
+python main.py
+./start.sh
+
+# 4. Run the tests
+npm test
+pytest
+make test
+
+# 5. When you're done, go back to main
+git checkout main
+```
+
+Step 2 matters more than people expect. If the PR added a new library and you don't install it, the code will fail and you'll think the PR is broken when it's actually fine. Check the diff for changes to `package.json`, `requirements.txt`, `Gemfile`, or whatever dependency file the project uses.
+
+### The flow
+
+```
+Someone opens PR #42
+        │
+        ▼
+gh pr checkout 42    (you're now on their branch)
+        │
+        ▼
+install deps, run it, test it
+        │
+        ▼
+gh pr review 42 --approve    (or --request-changes)
+        │
+        ▼
+git checkout main    (back to your own work)
+```
+
+One thing to keep in mind: while you're on their branch, don't commit anything unless you've talked to them about it. If you spot a typo and want to fix it, push to their branch or leave a comment on the PR. Surprise commits on someone else's branch make for confusing git history.
+
+---
+
 ## Cheat Sheet
 
 Tape this next to your monitor for two weeks.
@@ -227,11 +338,17 @@ git status                   what's changed?
 git log --oneline            recent commit history
 git diff                     see uncommitted changes
 
+REVIEWING SOMEONE'S PR
+─────────────────────────────────────────────────
+gh pr checkout 42            get a PR's code locally
+git checkout main            go back when done
+
 USEFUL EXTRAS
 ─────────────────────────────────────────────────
 git stash                    shelve changes temporarily
 git stash pop                bring them back
 git checkout main            switch back to main
+git fetch                    update branch list from GitHub
 git branch                   list your branches
 git branch -d branch-name    delete a branch
 ```
@@ -402,17 +519,3 @@ git sync
 For most internal teams of 2 to 15 people working on private repos, the shared repo model is simpler and that's what you should start with. Turn on branch protection so nobody accidentally pushes to `main`, and you're covered.
 
 Move to forks when any of these are true: the repo is open source, you have external contributors who shouldn't have write access, or the team is large enough that branch clutter in the shared repo becomes a problem. You can also mix models. The core repo stays in the org, most of the team uses shared branches, and outside contributors use forks.
-
----
-
-## What We're NOT Covering Today
-
-These are real things you'll eventually want to know. They're week-two problems.
-
-- `git rebase` (rewriting history)
-- `git cherry-pick` (grabbing individual commits)
-- `.gitignore` files (hiding files from Git)
-- GitHub Actions (automated workflows)
-- The reflog (Git's undo history)
-
-For now, clone, branch, edit, commit, push, open a PR. That's a real capability, and it's enough to start working together.
